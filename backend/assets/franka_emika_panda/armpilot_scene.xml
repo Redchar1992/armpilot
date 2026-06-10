@@ -1,0 +1,67 @@
+<mujoco model="armpilot scene">
+  <!-- Lives inside the franka_emika_panda dir so panda.xml's meshdir="assets" resolves correctly. -->
+  <include file="panda.xml"/>
+
+  <statistic center="0.3 0 0.3" extent="1"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <global azimuth="120" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.18 0.22 0.28"
+      rgb2="0.12 0.15 0.20" markrgb="0.5 0.55 0.6" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.1"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0.5 0 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" friction="1 .03 .003"/>
+
+    <body name="blue_plate" pos="0.62 0.12 0">
+      <geom name="blue_plate" type="cylinder" size="0.07 0.005" pos="0 0 0.005" rgba="0.2 0.4 0.9 1"
+        friction="1 .03 .003"/>
+    </body>
+    <body name="white_plate" pos="0.62 -0.12 0">
+      <geom name="white_plate" type="cylinder" size="0.07 0.005" pos="0 0 0.005" rgba="0.92 0.92 0.92 1"
+        friction="1 .03 .003"/>
+    </body>
+
+    <!-- Visual-only zone markers used by "move X to the left/right zone" tasks -->
+    <geom name="left_zone" type="box" size="0.1 0.08 0.0005" pos="0.35 0.3 0.0005" rgba="0.3 0.9 0.9 0.25"
+      contype="0" conaffinity="0"/>
+    <geom name="right_zone" type="box" size="0.1 0.08 0.0005" pos="0.35 -0.3 0.0005" rgba="0.95 0.6 0.2 0.25"
+      contype="0" conaffinity="0"/>
+
+    <body name="red_block" pos="0.45 0.15 0.02">
+      <freejoint name="red_block"/>
+      <geom name="red_block" type="box" size="0.02 0.02 0.02" rgba="0.9 0.15 0.15 1" condim="3"
+        friction="1 .03 .003" solref="0.01 1" mass="0.05"/>
+    </body>
+    <body name="green_block" pos="0.45 -0.15 0.02">
+      <freejoint name="green_block"/>
+      <geom name="green_block" type="box" size="0.02 0.02 0.02" rgba="0.15 0.75 0.25 1" condim="3"
+        friction="1 .03 .003" solref="0.01 1" mass="0.05"/>
+    </body>
+    <body name="blue_block" pos="0.55 0.28 0.02">
+      <freejoint name="blue_block"/>
+      <geom name="blue_block" type="box" size="0.02 0.02 0.02" rgba="0.2 0.45 0.95 1" condim="3"
+        friction="1 .03 .003" solref="0.01 1" mass="0.05"/>
+    </body>
+    <body name="yellow_block" pos="0.5 -0.28 0.02">
+      <freejoint name="yellow_block"/>
+      <geom name="yellow_block" type="box" size="0.02 0.02 0.02" rgba="0.95 0.85 0.2 1" condim="3"
+        friction="1 .03 .003" solref="0.01 1" mass="0.05"/>
+    </body>
+  </worldbody>
+
+  <!-- One inactive weld per graspable block; grasp() activates the matching one with the
+       current hand-relative pose (suction-style attach, see README design notes). -->
+  <equality>
+    <weld name="weld_red_block" body1="hand" body2="red_block" active="false" solref="0.005 1"/>
+    <weld name="weld_green_block" body1="hand" body2="green_block" active="false" solref="0.005 1"/>
+    <weld name="weld_blue_block" body1="hand" body2="blue_block" active="false" solref="0.005 1"/>
+    <weld name="weld_yellow_block" body1="hand" body2="yellow_block" active="false" solref="0.005 1"/>
+  </equality>
+</mujoco>
