@@ -1,0 +1,59 @@
+{
+  "tasks": [
+    { "id": 1, "family": "in_plate", "instruction": "把红色方块放进蓝色盘子",
+      "goals": [{ "type": "in_plate", "object": "red_block", "target": "blue_plate" }] },
+    { "id": 2, "family": "in_plate", "instruction": "Put the green block in the blue plate",
+      "goals": [{ "type": "in_plate", "object": "green_block", "target": "blue_plate" }] },
+    { "id": 3, "family": "in_plate", "instruction": "把蓝色方块放到白色盘子里",
+      "goals": [{ "type": "in_plate", "object": "blue_block", "target": "white_plate" }] },
+    { "id": 4, "family": "in_plate", "instruction": "place the yellow block on the white plate",
+      "goals": [{ "type": "in_plate", "object": "yellow_block", "target": "white_plate" }] },
+    { "id": 5, "family": "in_plate", "instruction": "把黄色方块放进蓝色盘子",
+      "blocks": { "yellow_block": [0.32, -0.38] },
+      "goals": [{ "type": "in_plate", "object": "yellow_block", "target": "blue_plate" }] },
+    { "id": 6, "family": "in_plate", "instruction": "Put the red block in the white plate",
+      "blocks": { "red_block": [0.68, 0.05] },
+      "goals": [{ "type": "in_plate", "object": "red_block", "target": "white_plate" }] },
+    { "id": 7, "family": "in_plate", "instruction": "把绿色积木放进蓝色盘子里",
+      "blocks": { "green_block": [0.38, 0.05] },
+      "goals": [{ "type": "in_plate", "object": "green_block", "target": "blue_plate" }] },
+    { "id": 8, "family": "in_plate", "instruction": "put the blue cube in the blue plate",
+      "goals": [{ "type": "in_plate", "object": "blue_block", "target": "blue_plate" }] },
+
+    { "id": 9, "family": "on_block", "instruction": "把蓝色方块叠到绿色方块上面",
+      "goals": [{ "type": "on_block", "object": "blue_block", "target": "green_block" }] },
+    { "id": 10, "family": "on_block", "instruction": "Stack the red block on the yellow block",
+      "goals": [{ "type": "on_block", "object": "red_block", "target": "yellow_block" }] },
+    { "id": 11, "family": "on_block", "instruction": "把绿色积木叠在红色积木上面",
+      "goals": [{ "type": "on_block", "object": "green_block", "target": "red_block" }] },
+    { "id": 12, "family": "on_block", "instruction": "stack the yellow cube onto the blue cube",
+      "blocks": { "yellow_block": [0.42, -0.3], "blue_block": [0.58, 0.2] },
+      "goals": [{ "type": "on_block", "object": "yellow_block", "target": "blue_block" }] },
+
+    { "id": 13, "family": "in_zone", "instruction": "把黄色方块移到左边区域",
+      "goals": [{ "type": "in_zone", "object": "yellow_block", "target": "left_zone" }] },
+    { "id": 14, "family": "in_zone", "instruction": "Move the red block to the right zone",
+      "goals": [{ "type": "in_zone", "object": "red_block", "target": "right_zone" }] },
+    { "id": 15, "family": "in_zone", "instruction": "把蓝色方块移动到右边区域",
+      "goals": [{ "type": "in_zone", "object": "blue_block", "target": "right_zone" }] },
+    { "id": 16, "family": "in_zone", "instruction": "move the green block to the left zone",
+      "blocks": { "green_block": [0.62, -0.05] },
+      "goals": [{ "type": "in_zone", "object": "green_block", "target": "left_zone" }] },
+
+    { "id": 17, "family": "holding", "instruction": "拿起绿色方块",
+      "goals": [{ "type": "holding", "object": "green_block" }] },
+    { "id": 18, "family": "holding", "instruction": "Pick up the blue block",
+      "goals": [{ "type": "holding", "object": "blue_block" }] },
+
+    { "id": 19, "family": "multi", "instruction": "把红色方块和绿色方块都放进白色盘子",
+      "goals": [
+        { "type": "in_plate", "object": "red_block", "target": "white_plate" },
+        { "type": "in_plate", "object": "green_block", "target": "white_plate" }
+      ] },
+    { "id": 20, "family": "multi", "instruction": "Put the yellow block and the blue block in the blue plate",
+      "goals": [
+        { "type": "in_plate", "object": "yellow_block", "target": "blue_plate" },
+        { "type": "in_plate", "object": "blue_block", "target": "blue_plate" }
+      ] }
+  ]
+}

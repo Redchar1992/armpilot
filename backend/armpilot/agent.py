@@ -78,6 +78,8 @@ Motion conventions (follow exactly):
 - To grasp a block: descend to its [x, y, 0.025], then grasp, then lift to [x, y, 0.2].
 - To place: move above the target at z=0.2, descend to z=0.07 (or z=0.065+target block top when \
 stacking on a block), release, then lift back to z=0.2.
+- When placing several objects into the same plate, offset each drop a few cm apart so they sit \
+side by side instead of stacking.
 - Workspace: x in [0.3, 0.7], y in [-0.4, 0.4].
 
 Always call get_scene first to read current positions — never assume them. After acting, verify \
@@ -173,16 +175,31 @@ class MockPlanner:
             executor.emit("[mock] could not parse command")
             return False
         goals, plans = parsed
+        offsets = self._place_offsets(goals)
         for attempt in range(1, MAX_ATTEMPTS + 1):
             ok = True
-            for block, goal in zip(plans, goals):
-                self._execute_plan(block, goal, executor)
+            for block, goal, offset in zip(plans, goals, offsets):
+                self._execute_plan(block, goal, executor, offset)
                 if not executor.execute("check_success", {"goal": goal})["success"]:
                     ok = False
             if ok:
                 return True
             executor.emit(f"[mock] attempt {attempt} failed, re-planning")
         return False
+
+    @staticmethod
+    def _place_offsets(goals):
+        """Spread drops a few cm apart when several goals share a target plate."""
+        spread = [(-0.025, 0.0), (0.03, 0.0), (0.0, -0.03), (0.0, 0.03)]
+        per_target = {}
+        offsets = []
+        for g in goals:
+            tgt = g.get("target")
+            shared = sum(1 for x in goals if x.get("target") == tgt) > 1
+            i = per_target.get(tgt, 0)
+            per_target[tgt] = i + 1
+            offsets.append(spread[i % len(spread)] if shared else (0.0, 0.0))
+        return offsets
 
     def parse(self, text):
         t = text.lower()
@@ -222,7 +239,7 @@ class MockPlanner:
                 found.append(f"{color}_block")
         return found
 
-    def _execute_plan(self, block, goal, ex):
+    def _execute_plan(self, block, goal, ex, offset=(0.0, 0.0)):
         scene = ex.execute("get_scene", {})
         pos = {o["name"]: o["pos"] for o in scene["objects"]}
         bx, by, _ = pos[block]
@@ -235,6 +252,7 @@ class MockPlanner:
             return
         # place
         tx, ty, tz = pos[goal["target"]]
+        tx, ty = tx + offset[0], ty + offset[1]
         drop_z = 0.065 + tz + 0.02 if goal["type"] == "on_block" else 0.07
         ex.execute("move_to", {"pos": [tx, ty, 0.2]})
         ex.execute("move_to", {"pos": [tx, ty, drop_z]})

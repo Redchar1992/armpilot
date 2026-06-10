@@ -72,6 +72,7 @@ class SimEnv:
         }
         self.ik = IKSolver(m, "grip_site", ARM_JOINTS, HOME_QPOS)
         self._stream_gids = self._select_stream_geoms()
+        self._default_plate_pos = {n: m.body_pos[b].copy() for n, b in self.plate_bids.items()}
         self.reset()
 
     # ------------------------------------------------------------- lifecycle
@@ -89,6 +90,8 @@ class SimEnv:
             for name, (x, y) in xy.items():
                 adr = self.block_qpos_adr[name]
                 self.data.qpos[adr:adr + 7] = [x, y, BLOCK_HALF, 1, 0, 0, 0]
+            for name, default in self._default_plate_pos.items():
+                self.model.body_pos[self.plate_bids[name]] = default
             if plates:
                 for name, (x, y) in plates.items():
                     self.model.body_pos[self.plate_bids[name]][0:2] = (x, y)
