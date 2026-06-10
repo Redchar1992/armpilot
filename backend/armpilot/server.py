@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
+from .agent import run_command
 from .demo import run_demo
 from .sim import SimEnv
 
@@ -102,6 +103,14 @@ def _reset_job():
     emit("status", message="scene reset")
 
 
+def _command_job(text):
+    emit("status", message=f"agent processing: {text}")
+    result = run_command(env, text, emit=lambda m: emit("agent_event", message=m))
+    emit("done", success=result["success"],
+         message=f"[{result['planner']}] " +
+                 ("goal verified ✓" if result["success"] else "goal NOT achieved"))
+
+
 @app.websocket("/ws")
 async def ws_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -117,8 +126,9 @@ async def ws_endpoint(websocket: WebSocket):
             elif kind == "reset":
                 _submit(_reset_job, "reset")
             elif kind == "command":
-                # wired to the LLM agent in M2
-                emit("error", message="agent commands land in M2")
+                text = str(msg.get("text", "")).strip()
+                if text:
+                    _submit(lambda: _command_job(text), "command")
             else:
                 emit("error", message=f"unknown message type {kind!r}")
     except WebSocketDisconnect:

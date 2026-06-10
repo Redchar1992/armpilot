@@ -194,6 +194,9 @@ class SimEnv:
         obj, target, kind = goal.get("object"), goal.get("target"), goal.get("type")
         if obj not in self.block_bids:
             return {"success": False, "detail": f"unknown object {obj!r}"}
+        if kind == "holding":
+            ok = self.held == obj
+            return {"success": ok, "detail": f"gripper is holding {self.held or 'nothing'}"}
         with self.lock:
             p = self.data.xpos[self.block_bids[obj]].copy()
             if self.held == obj:
