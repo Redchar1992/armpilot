@@ -1,0 +1,139 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  background: #14161a;
+  color: #e6e8eb;
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #2a2e35;
+  background: #1a1d22;
+}
+
+.topbar h1 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.topbar .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.viewport {
+  flex: 1;
+  min-width: 0;
+}
+
+.panel {
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #2a2e35;
+  background: #1a1d22;
+}
+
+.panel section {
+  padding: 12px 14px;
+  border-bottom: 1px solid #2a2e35;
+}
+
+.panel h2 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8b929c;
+  margin-bottom: 8px;
+}
+
+.statusRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 2px 0;
+  color: #c8cdd4;
+}
+
+.buttons {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  background: #2d6cdf;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #343941;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.commandForm {
+  display: flex;
+  gap: 8px;
+}
+
+.commandForm input {
+  flex: 1;
+  background: #14161a;
+  border: 1px solid #343941;
+  border-radius: 6px;
+  color: #e6e8eb;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.log .err {
+  color: #ff7b72;
+}
+
+.log .ok {
+  color: #7ee787;
+}
+
+.log .info {
+  color: #a5b1c2;
+}
