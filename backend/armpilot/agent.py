@@ -121,13 +121,28 @@ class ClaudePlanner:
 
     def __init__(self, model=None):
         import anthropic
+        self._anthropic = anthropic
         self.client = anthropic.Anthropic()
         self.model = model or os.environ.get("ARMPILOT_MODEL", "claude-fable-5")
+
+    def _create(self, **kwargs):
+        """messages.create with patient backoff — third-party gateways throw
+        transient 503/429 bursts that outlast the SDK's quick default retries."""
+        import time
+        for delay in (2, 5, 10, 20, None):
+            try:
+                return self.client.messages.create(**kwargs)
+            except (self._anthropic.APIStatusError, self._anthropic.APIConnectionError) as e:
+                status = getattr(e, "status_code", None)
+                retryable = status is None or status == 429 or status >= 500
+                if not retryable or delay is None:
+                    raise
+                time.sleep(delay)
 
     def run(self, command, executor):
         messages = [{"role": "user", "content": command}]
         for _ in range(48):  # hard cap on tool round-trips
-            response = self.client.messages.create(
+            response = self._create(
                 model=self.model, max_tokens=1500, system=SYSTEM_PROMPT,
                 tools=TOOLS, messages=messages,
             )

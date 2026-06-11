@@ -69,6 +69,10 @@ phrasing works, model defaults to `claude-fable-5`, override with `ARMPILOT_MODE
 without it the deterministic mock planner handles the five families above. Force one
 with `ARMPILOT_PLANNER=mock|claude`.
 
+Config can live in `backend/.env` (auto-loaded by the package, gitignored; shell env
+vars take precedence). `ANTHROPIC_BASE_URL` is supported for API gateways; the Claude
+planner retries transient gateway 503/429 bursts with backoff.
+
 ## Eval
 
 20 tasks across the five families (`backend/tasks/tasks.json`), each verified against
