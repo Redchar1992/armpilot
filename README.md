@@ -8,7 +8,11 @@ in the browser at 30 fps.
 "把红色方块放进蓝色盘子"  →  plan → move → grasp → move → release → verify ✓
 ```
 
-![agent executing a Chinese command](docs/screenshot-agent.png)
+![demo: Claude plans and executes a Chinese command live](docs/demo.gif)
+
+*Live recording, ~4× speed: `claude-sonnet-4-6` reads the scene, plans the
+pick-and-place over 9 tool calls, executes, and verifies the goal (2 mm from
+plate center). Static screenshot: [docs/screenshot-agent.png](docs/screenshot-agent.png).*
 
 ## Architecture
 
