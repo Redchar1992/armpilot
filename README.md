@@ -83,8 +83,10 @@ cd backend
 .venv/bin/python -m armpilot.eval --planner mock     # writes tasks/report.md
 ```
 
-Current result (mock planner): **20/20 (100%)** — see `backend/tasks/report.md`.
-With an API key, `--planner claude` runs the same suite through the LLM.
+Current results — mock planner: **20/20 (100%)** (`backend/tasks/report.md`);
+Claude planner (`claude-sonnet-4-6`, end-to-end tool-calling): **20/20 (100%)**,
+~32s per task (`backend/tasks/report-claude.md`). With an API key, `--planner claude`
+runs the same suite through the LLM.
 
 Acceptance scripts: `scripts/m0_pick_place.py` (scripted grasp), `scripts/m1_ws_check.py`
 (WS pipeline), `scripts/m2_agent_check.py` (5 command families e2e).
