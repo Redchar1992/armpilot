@@ -103,7 +103,12 @@ class SimEnv:
     # ------------------------------------------------------------ primitives
 
     def move_to(self, pos, quat=None):
-        pos = np.clip(np.asarray(pos, dtype=float), WORKSPACE_LO, WORKSPACE_HI)
+        target = np.asarray(pos, dtype=float)
+        pos = np.clip(target, WORKSPACE_LO, WORKSPACE_HI)
+        if not np.allclose(pos, target):
+            return {"ok": False,
+                    "error": f"target {target.round(3).tolist()} is out of workspace "
+                             f"(bounds {WORKSPACE_LO.tolist()} to {WORKSPACE_HI.tolist()})"}
         quat = DOWN_QUAT if quat is None else np.asarray(quat, dtype=float)
         with self.lock:
             q_now = self.data.qpos[self.arm_qpos_ids].copy()
