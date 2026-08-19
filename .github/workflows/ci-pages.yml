@@ -1,0 +1,85 @@
+name: CI and GitHub Pages
+
+"on":
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend quality gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.2
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run check:all
+      - run: npm audit --audit-level=high
+      - name: Build the Pages artifact
+        env:
+          NEXT_PUBLIC_BASE_PATH: /armpilot
+          NEXT_PUBLIC_RUNTIME: browser
+        run: npm run build
+      - name: Verify repository-subpath assets
+        run: |
+          test -f out/index.html
+          grep -q '/armpilot/_next/' out/index.html
+      - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: frontend/out
+
+  backend:
+    name: MuJoCo and protocol gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: python -m pip install -r backend/requirements.txt
+      - name: Compile and test protocol validation
+        working-directory: backend
+        run: |
+          python -m compileall -q armpilot tests
+          PYTHONPATH=. python -m unittest discover -s tests -v
+      - name: Run the deterministic 20-task eval
+        working-directory: backend
+        run: |
+          python -m armpilot.eval --planner mock --out /tmp/armpilot-report.md | tee /tmp/armpilot-eval.log
+          grep -q 'success rate: 20/20 (100%)' /tmp/armpilot-eval.log
+
+  deploy:
+    name: Deploy GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: [frontend, backend]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

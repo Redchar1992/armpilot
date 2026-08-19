@@ -5,6 +5,7 @@ Run: uvicorn armpilot.server:app --port 8000
 
 import asyncio
 import json
+import os
 import threading
 from contextlib import asynccontextmanager
 
@@ -12,9 +13,23 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 from .agent import run_command
 from .demo import run_demo
+from .protocol import origin_is_allowed, parse_client_message
 from .sim import SimEnv
 
 FPS = 30
+
+# Cross-site WebSocket hijacking (CSWSH) guard. Browsers do NOT enforce the
+# same-origin policy for WebSockets (unlike fetch/CORS) — they send an Origin
+# header but never block on it, so the server must. Any page the user visits
+# could otherwise open ws://localhost:8000/ws and drive the arm / burn the
+# metered LLM gateway quota. Reject browser connections whose Origin is not
+# allow-listed; header-less (native / non-browser) clients are allowed through.
+ALLOWED_ORIGINS = {
+    o.strip() for o in os.environ.get(
+        "ARMPILOT_ALLOWED_ORIGINS",
+        "http://localhost:3100,http://127.0.0.1:3100",
+    ).split(",") if o.strip()
+}
 
 env = SimEnv(realtime=True)
 clients: set = set()
@@ -113,23 +128,30 @@ def _command_job(text):
 
 @app.websocket("/ws")
 async def ws_endpoint(websocket: WebSocket):
+    origin = websocket.headers.get("origin")
+    if not origin_is_allowed(origin, ALLOWED_ORIGINS):
+        # Reject cross-site browser handshakes (CSWSH); 1008 = policy violation.
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
     # send scene_init before joining the broadcast set, so no frame precedes it
     await websocket.send_text(json.dumps(env.scene_description()))
     clients.add(websocket)
     try:
         while True:
-            msg = json.loads(await websocket.receive_text())
+            msg, error = parse_client_message(await websocket.receive_text())
+            if error:
+                await websocket.send_text(json.dumps(
+                    {"type": "error", "message": error}))
+                continue
             kind = msg.get("type")
             if kind == "demo":
                 _submit(_demo_job, "demo")
             elif kind == "reset":
                 _submit(_reset_job, "reset")
             elif kind == "command":
-                text = str(msg.get("text", "")).strip()
-                if text:
-                    _submit(lambda: _command_job(text), "command")
-            else:
-                emit("error", message=f"unknown message type {kind!r}")
+                _submit(lambda: _command_job(msg["text"]), "command")
     except WebSocketDisconnect:
+        pass
+    finally:
         clients.discard(websocket)

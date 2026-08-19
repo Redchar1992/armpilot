@@ -1,107 +1,98 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { MutableRefObject, useMemo, useRef } from "react";
+import { type MutableRefObject, useMemo, useRef } from "react";
 
-export type GeomDef = {
-  id: number;
-  name: string;
-  type: string;
-  size: number[];
-  rgba: number[];
-  verts?: number[];
-  faces?: number[];
-};
-
-export type Frame = { t: number; poses: number[][]; holding: string | null };
+import type { Frame, GeomDef } from "@/lib/sceneTypes";
 
 function GeomObject({
   def,
   register,
 }: {
   def: GeomDef;
-  register: (id: number, o: THREE.Object3D | null) => void;
+  register: (id: number, object: THREE.Object3D | null) => void;
 }) {
   const color = useMemo(
     () => new THREE.Color(def.rgba[0], def.rgba[1], def.rgba[2]),
-    [def]
+    [def.rgba],
   );
-  const meshGeo = useMemo(() => {
+  const meshGeometry = useMemo(() => {
     if (def.type !== "mesh" || !def.verts || !def.faces) return null;
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.Float32BufferAttribute(def.verts, 3));
-    geo.setIndex(def.faces);
-    geo.computeVertexNormals();
-    return geo;
-  }, [def]);
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(def.verts, 3));
+    geometry.setIndex(def.faces);
+    geometry.computeVertexNormals();
+    return geometry;
+  }, [def.faces, def.type, def.verts]);
 
-  const mat = (
+  const material = (
     <meshStandardMaterial
       color={color}
       transparent={def.rgba[3] < 1}
       opacity={def.rgba[3]}
-      roughness={0.65}
-      metalness={0.05}
+      roughness={def.name.includes("block") ? 0.42 : 0.64}
+      metalness={def.name.includes("arm") || def.name.includes("wrist") ? 0.14 : 0.02}
       side={def.type === "plane" ? THREE.DoubleSide : THREE.FrontSide}
+      depthWrite={def.rgba[3] > 0.4}
     />
   );
 
-  let inner: React.ReactNode;
+  let content: React.ReactNode;
   switch (def.type) {
     case "plane":
-      inner = (
+      content = (
         <mesh receiveShadow>
-          <planeGeometry args={[8, 8]} />
-          {mat}
+          <planeGeometry args={[def.size[0] * 2, def.size[1] * 2]} />
+          {material}
         </mesh>
       );
       break;
     case "box":
-      inner = (
+      content = (
         <mesh castShadow receiveShadow>
           <boxGeometry args={[def.size[0] * 2, def.size[1] * 2, def.size[2] * 2]} />
-          {mat}
+          {material}
         </mesh>
       );
       break;
     case "sphere":
-      inner = (
+      content = (
         <mesh castShadow>
           <sphereGeometry args={[def.size[0], 24, 24]} />
-          {mat}
+          {material}
         </mesh>
       );
       break;
-    // MuJoCo cylinders/capsules are z-axis aligned, three.js ones are y-axis
     case "cylinder":
-      inner = (
+      content = (
         <mesh castShadow receiveShadow rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[def.size[0], def.size[0], def.size[1] * 2, 32]} />
-          {mat}
+          {material}
         </mesh>
       );
       break;
     case "capsule":
-      inner = (
+      content = (
         <mesh castShadow rotation={[Math.PI / 2, 0, 0]}>
           <capsuleGeometry args={[def.size[0], def.size[1] * 2, 8, 16]} />
-          {mat}
+          {material}
         </mesh>
       );
       break;
     case "mesh":
-      inner = (
-        <mesh geometry={meshGeo!} castShadow receiveShadow>
-          {mat}
+      content = (
+        <mesh geometry={meshGeometry!} castShadow receiveShadow>
+          {material}
         </mesh>
       );
       break;
     default:
       return null;
   }
-  return <group ref={(o) => register(def.id, o)}>{inner}</group>;
+
+  return <group ref={(object) => register(def.id, object)}>{content}</group>;
 }
 
 function FrameApplier({
@@ -114,14 +105,14 @@ function FrameApplier({
   order: number[];
 }) {
   useFrame(() => {
-    const f = frameRef.current;
-    if (!f) return;
-    for (let i = 0; i < f.poses.length; i++) {
-      const obj = objects.current.get(order[i]);
-      if (!obj) continue;
-      const p = f.poses[i];
-      obj.position.set(p[0], p[1], p[2]);
-      obj.quaternion.set(p[4], p[5], p[6], p[3]); // mujoco wxyz -> three xyzw
+    const frame = frameRef.current;
+    if (!frame) return;
+    for (let index = 0; index < frame.poses.length; index += 1) {
+      const object = objects.current.get(order[index]);
+      if (!object) continue;
+      const pose = frame.poses[index];
+      object.position.set(pose[0], pose[1], pose[2]);
+      object.quaternion.set(pose[4], pose[5], pose[6], pose[3]);
     }
   });
   return null;
@@ -135,26 +126,54 @@ export default function Viewer({
   frameRef: MutableRefObject<Frame | null>;
 }) {
   const objects = useRef(new Map<number, THREE.Object3D>());
-  const order = useMemo(() => geoms.map((g) => g.id), [geoms]);
-  const register = (id: number, o: THREE.Object3D | null) => {
-    if (o) objects.current.set(id, o);
+  const order = useMemo(() => geoms.map((geom) => geom.id), [geoms]);
+  const register = (id: number, object: THREE.Object3D | null) => {
+    if (object) objects.current.set(id, object);
     else objects.current.delete(id);
   };
+
   return (
-    <Canvas shadows camera={{ position: [1.3, -1.1, 0.9], up: [0, 0, 1], fov: 42 }}>
-      <color attach="background" args={["#14161a"]} />
-      <ambientLight intensity={0.5} />
+    <Canvas
+      shadows
+      dpr={[1, 1.75]}
+      camera={{ position: [1.14, -1.06, 0.78], up: [0, 0, 1], fov: 39 }}
+      gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+    >
+      <color attach="background" args={["#080d10"]} />
+      <fog attach="fog" args={["#080d10", 1.35, 2.45]} />
+      <hemisphereLight args={["#c8e9ff", "#16231f", 0.86]} />
       <directionalLight
-        position={[1, -1, 2]}
-        intensity={1.2}
+        position={[0.7, -0.75, 1.45]}
+        intensity={2.15}
         castShadow
         shadow-mapSize={[2048, 2048]}
+        shadow-camera-near={0.1}
+        shadow-camera-far={3}
+        shadow-camera-left={-1}
+        shadow-camera-right={1}
+        shadow-camera-top={1}
+        shadow-camera-bottom={-1}
       />
-      {geoms.map((g) => (
-        <GeomObject key={g.id} def={g} register={register} />
+      <pointLight position={[0.3, 0.45, 0.7]} intensity={1.2} color="#b8f35a" />
+      <gridHelper
+        args={[1.65, 22, "#2a4a42", "#172720"]}
+        rotation={[Math.PI / 2, 0, 0]}
+        position={[0.46, 0.04, 0.003]}
+      />
+      {geoms.map((geom) => (
+        <GeomObject key={geom.id} def={geom} register={register} />
       ))}
       <FrameApplier frameRef={frameRef} objects={objects} order={order} />
-      <OrbitControls makeDefault target={[0.45, 0, 0.08]} />
+      <OrbitControls
+        makeDefault
+        target={[0.43, 0.02, 0.13]}
+        enableDamping
+        dampingFactor={0.075}
+        minDistance={0.72}
+        maxDistance={2.1}
+        minPolarAngle={0.35}
+        maxPolarAngle={Math.PI / 2.08}
+      />
     </Canvas>
   );
 }
